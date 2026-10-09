@@ -1,0 +1,144 @@
+# Skills taxonomy - seed dataset
+# version: 1.0.0
+#
+# Structure mirrors how public taxonomies like ESCO (EU, esco.ec.europa.eu)
+# and O*NET (US, onetonline.org) organize skills: a canonical skill name
+# with a list of synonyms/abbreviations that should all resolve to it.
+#
+# This is a deliberately small SEED set covering common tech/business/soft
+# skills, meant to be replaced or extended with the real ESCO or O*NET
+# dataset in production (both are free/public). See
+# `app/matching/taxonomy_loader.py` for an ESCO CSV importer you can point
+# at the official ESCO skills download to replace this file at scale.
+#
+# category: "hard" | "soft" - used for the hard-skill vs soft-skill match
+# breakdown in the job-tailoring check.
+
+version: "1.0.0"
+
+skills:
+  # --- Programming languages / hard tech skills ---
+  - canonical: Python
+    category: hard
+    synonyms: [python, python3, py]
+  - canonical: JavaScript
+    category: hard
+    synonyms: [javascript, js, es6, ecmascript]
+  - canonical: TypeScript
+    category: hard
+    synonyms: [typescript, ts]
+  - canonical: SQL
+    category: hard
+    synonyms: [sql, structured query language, mysql, postgresql, postgres, tsql]
+  - canonical: Java
+    category: hard
+    synonyms: [java, j2ee, jvm]
+  - canonical: React
+    category: hard
+    synonyms: [react, react.js, reactjs]
+  - canonical: Node.js
+    category: hard
+    synonyms: [node, node.js, nodejs]
+  - canonical: AWS
+    category: hard
+    synonyms: [aws, amazon web services, ec2, s3, lambda]
+  - canonical: Docker
+    category: hard
+    synonyms: [docker, containerization, containers]
+  - canonical: Kubernetes
+    category: hard
+    synonyms: [kubernetes, k8s]
+  - canonical: Git
+    category: hard
+    synonyms: [git, github, gitlab, version control]
+  - canonical: Machine Learning
+    category: hard
+    synonyms: [machine learning, ml, deep learning, neural networks]
+
+  # --- Data / analytics ---
+  - canonical: Excel
+    category: hard
+    synonyms: [excel, microsoft excel, spreadsheets, ms excel]
+  - canonical: Tableau
+    category: hard
+    synonyms: [tableau, data visualization]
+  - canonical: Power BI
+    category: hard
+    synonyms: [power bi, powerbi]
+  - canonical: A/B Testing
+    category: hard
+    synonyms: [a/b testing, ab testing, split testing, experimentation]
+  - canonical: Data Analysis
+    category: hard
+    synonyms: [data analysis, data analytics, analytics]
+
+  # --- Product / project management ---
+  - canonical: Product Management
+    category: hard
+    synonyms: [product management, product manager, pm]
+  - canonical: Project Management
+    category: hard
+    synonyms: [project management, pmp, program management]
+  - canonical: Agile
+    category: hard
+    synonyms: [agile, scrum, kanban, sprint planning]
+  - canonical: Jira
+    category: hard
+    synonyms: [jira, atlassian]
+  - canonical: Roadmapping
+    category: hard
+    synonyms: [roadmapping, roadmap planning, product roadmap]
+  - canonical: Figma
+    category: hard
+    synonyms: [figma, wireframing, prototyping]
+
+  # --- Sales / marketing ---
+  - canonical: Salesforce
+    category: hard
+    synonyms: [salesforce, crm, sfdc]
+  - canonical: SEO
+    category: hard
+    synonyms: [seo, search engine optimization]
+  - canonical: Content Marketing
+    category: hard
+    synonyms: [content marketing, content strategy]
+  - canonical: Google Analytics
+    category: hard
+    synonyms: [google analytics, ga4]
+  - canonical: Negotiation
+    category: soft
+    synonyms: [negotiation, deal-making, contract negotiation]
+
+  # --- Finance ---
+  - canonical: Financial Modeling
+    category: hard
+    synonyms: [financial modeling, financial analysis, forecasting]
+  - canonical: QuickBooks
+    category: hard
+    synonyms: [quickbooks, bookkeeping software]
+
+  # --- Soft skills ---
+  - canonical: Leadership
+    category: soft
+    synonyms: [leadership, team leadership, people management]
+  - canonical: Communication
+    category: soft
+    synonyms: [communication, verbal communication, written communication]
+  - canonical: Problem Solving
+    category: soft
+    synonyms: [problem solving, problem-solving, critical thinking]
+  - canonical: Collaboration
+    category: soft
+    synonyms: [collaboration, teamwork, cross-functional collaboration]
+  - canonical: Time Management
+    category: soft
+    synonyms: [time management, prioritization, organization]
+  - canonical: Adaptability
+    category: soft
+    synonyms: [adaptability, flexibility, resilience]
+  - canonical: Mentorship
+    category: soft
+    synonyms: [mentorship, coaching, mentoring]
+  - canonical: Stakeholder Management
+    category: soft
+    synonyms: [stakeholder management, stakeholder engagement]

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>India IT Hiring Heatmap</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; background:#f0f7f4; font-family:'Inter',system-ui,sans-serif; }
+
+  #app { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+
+  /* Header */
+  #header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 18px;
+    background:#e8f4f0;
+    border-bottom:1px solid rgba(91,184,160,0.3);
+    z-index:1001; flex-shrink:0;
+  }
+  #header h1 { font-size:13px; font-weight:700; color:#2d5a4e; letter-spacing:1px; }
+  #header h1 span { color:#5BB8A0; }
+  #header-right { display:flex; align-items:center; gap:12px; }
+  #live { display:flex; align-items:center; gap:6px; font-size:10px; color:#6b8e7e; }
+  #live-dot { width:7px; height:7px; border-radius:50%; background:#3EB489; animation:pulse 1.8s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
+
+  /* Toggle button */
+  #panel-toggle {
+    display:flex; align-items:center; gap:6px;
+    padding:6px 12px; border-radius:20px; border:none; cursor:pointer;
+    background:#4A7C59; color:#fff; font-size:11px; font-weight:600;
+    box-shadow:0 2px 8px rgba(74,124,89,0.3); transition:background 0.2s;
+  }
+  #panel-toggle:hover { background:#3d6b4a; }
+
+  /* Map + panel wrapper */
+  #main { display:flex; flex:1; overflow:hidden; position:relative; }
+
+  /* Map */
+  #map { flex:1; }
+
+  /* Side panel */
+  #side-panel {
+    width:320px; flex-shrink:0;
+    background:#f0f7f4;
+    border-left:1px solid rgba(91,184,160,0.3);
+    display:flex; flex-direction:column;
+    overflow:hidden;
+    transition:width 0.3s ease, opacity 0.3s ease;
+  }
+  #side-panel.closed { width:0; opacity:0; pointer-events:none; }
+
+  #panel-header {
+    padding:14px 16px 10px;
+    background:#e8f4f0;
+    border-bottom:1px solid rgba(91,184,160,0.2);
+    flex-shrink:0;
+  }
+  #panel-header h2 { font-size:13px; font-weight:700; color:#2d5a4e; margin-bottom:2px; }
+  #panel-header p { font-size:10px; color:#6b8e7e; }
+
+  /* Filters */
+  #filters { padding:10px 12px; border-bottom:1px solid rgba(91,184,160,0.15); flex-shrink:0; }
+  #filters label { font-size:9px; font-weight:700; color:#4a7a6a; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:5px; }
+  #city-filter {
+    width:100%; padding:5px 8px; border-radius:6px; font-size:11px;
+    border:1px solid rgba(91,184,160,0.35); background:#e8f4f0; color:#2d5a4e;
+    outline:none; margin-bottom:10px; cursor:pointer;
+  }
+  #skill-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .skill-chip {
+    padding:3px 9px; border-radius:12px; font-size:10px; font-weight:500; cursor:pointer;
+    border:1px solid rgba(135,206,235,0.6); background:rgba(135,206,235,0.15); color:#2d6a8a;
+    transition:all 0.15s;
+  }
+  .skill-chip.active { background:#87CEEB; color:#1a4a6a; border-color:#87CEEB; font-weight:700; }
+
+  /* Card list */
+  #card-list { flex:1; overflow-y:auto; padding:10px 12px; display:flex; flex-direction:column; gap:10px; }
+  #card-list::-webkit-scrollbar { width:4px; }
+  #card-list::-webkit-scrollbar-track { background:transparent; }
+  #card-list::-webkit-scrollbar-thumb { background:rgba(91,184,160,0.3); border-radius:2px; }
+
+  /* Internship card */
+  .intern-card {
+    background:#fff; border:1px solid rgba(91,184,160,0.25);
+    border-radius:10px; padding:12px; box-shadow:0 2px 8px rgba(45,90,78,0.06);
+    transition:box-shadow 0.2s, transform 0.2s;
+  }
+  .intern-card:hover { box-shadow:0 4px 16px rgba(45,90,78,0.12); transform:translateY(-1px); }
+
+  .card-top { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .company-avatar {
+    width:36px; height:36px; border-radius:8px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:800; color:#fff;
+  }
+  .card-info { flex:1; min-width:0; }
+  .card-company { font-size:12px; font-weight:700; color:#2d5a4e; }
+  .card-role { font-size:11px; color:#6b8e7e; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  .card-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+  .meta-city { font-size:9px; color:#4a7a6a; background:rgba(62,180,137,0.1); border:1px solid rgba(62,180,137,0.25); padding:2px 7px; border-radius:10px; }
+  .meta-stipend { font-size:10px; font-weight:700; color:#3EB489; }
+  .meta-duration { font-size:9px; color:#6b8e7e; }
+
+  .card-skills { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px; }
+  .skill-tag { font-size:9px; padding:2px 7px; border-radius:8px; background:rgba(135,206,235,0.2); color:#2d6a8a; border:1px solid rgba(135,206,235,0.4); }
+
+  .apply-btn {
+    width:100%; padding:7px; border-radius:7px; border:none; cursor:pointer;
+    background:#4A7C59; color:#fff; font-size:11px; font-weight:600;
+    transition:background 0.2s; letter-spacing:0.3px;
+  }
+  .apply-btn:hover { background:#3d6b4a; }
+
+  .no-results { text-align:center; padding:30px 16px; color:#6b8e7e; font-size:12px; }
+
+  /* Leaflet overrides */
+  .leaflet-popup-content-wrapper {
+    background:#e8f4f0 !important; border:1px solid rgba(91,184,160,0.4) !important;
+    border-radius:10px !important; box-shadow:0 4px 20px rgba(45,90,78,0.15) !important;
+    color:#2d5a4e !important;
+  }
+  .leaflet-popup-tip { background:#e8f4f0 !important; }
+  .leaflet-popup-close-button { color:#6b8e7e !important; }
+  .popup-city { font-size:13px; font-weight:700; color:#2d5a4e; margin-bottom:4px; }
+  .popup-jobs { font-size:20px; font-weight:800; color:#2d5a4e; }
+  .popup-label { font-size:9px; color:#6b8e7e; text-transform:uppercase; letter-spacing:1px; }
+  .popup-role { font-size:10px; color:#4a7a6a; margin-top:2px; }
+  .popup-bar-wrap { height:4px; background:rgba(45,90,78,0.1); border-radius:2px; margin-top:8px; overflow:hidden; }
+  .popup-bar { height:100%; border-radius:2px; background:linear-gradient(to right,#87CEEB,#3EB489,#4A7C59); }
+  .popup-pct { font-size:8px; color:#6b8e7e; margin-top:4px; text-align:right; }
+  .popup-filter-btn {
+    width:100%; margin-top:8px; padding:5px; border-radius:6px; border:none; cursor:pointer;
+    background:#4A7C59; color:#fff; font-size:10px; font-weight:600;
+  }
+
+  /* Legend */
+  #legend {
+    position:absolute; bottom:28px; left:16px; z-index:1000;
+    background:rgba(232,244,240,0.96); border:1px solid rgba(91,184,160,0.35);
+    border-radius:10px; padding:12px 14px; min-width:180px;
+    backdrop-filter:blur(8px); box-shadow:0 4px 16px rgba(45,90,78,0.12);
+  }
+  #legend h3 { font-size:9px; font-weight:700; color:#2d5a4e; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:8px; }
+  .legend-bar { height:10px; border-radius:5px; margin-bottom:5px; background:linear-gradient(to right,#87CEEB,#3EB489,#6B8E23,#4A7C59); box-shadow:0 0 6px rgba(62,180,137,0.25); }
+  .legend-labels { display:flex; justify-content:space-between; font-size:8px; color:#6b8e7e; margin-bottom:10px; }
+  .legend-divider { border:none; border-top:1px solid rgba(45,90,78,0.1); margin:8px 0; }
+  .legend-city { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
+  .legend-city-name { font-size:9px; color:#4a7a6a; }
+  .legend-city-val { font-size:9px; font-weight:700; color:#2d5a4e; }
+
+  /* Stats */
+  #stats {
+    position:absolute; top:10px; right:16px; z-index:1000;
+    background:rgba(232,244,240,0.96); border:1px solid rgba(91,184,160,0.35);
+    border-radius:10px; padding:12px 14px; min-width:160px;
+    backdrop-filter:blur(8px); box-shadow:0 4px 16px rgba(45,90,78,0.12);
+  }
+  #stats h3 { font-size:9px; font-weight:700; color:#2d5a4e; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px; }
+  .stat-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:7px; }
+  .stat-label { font-size:9px; color:#6b8e7e; }
+  .stat-val { font-size:12px; font-weight:700; }
+
+  /* Mobile bottom drawer */
+  @media (max-width: 640px) {
+    #side-panel {
+      position:fixed; bottom:0; left:0; right:0; width:100% !important;
+      height:60vh; border-left:none; border-top:1px solid rgba(91,184,160,0.3);
+      border-radius:16px 16px 0 0; z-index:2000;
+      transform:translateY(0); transition:transform 0.3s ease, opacity 0.3s ease;
+    }
+    #side-panel.closed { transform:translateY(100%); opacity:0; width:100% !important; }
+    #stats { display:none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <h1>India IT Hiring Heatmap · <span id="current-period"></span></h1>
+    <div id="header-right">
+      <div id="live"><div id="live-dot"></div> Live Data</div>
+      <button id="panel-toggle" onclick="togglePanel()">📋 Internships (8)</button>
+    </div>
+  </div>
+  <div id="main">
+    <div id="map"></div>
+    <div id="side-panel" class="closed">
+      <div id="panel-header">
+        <h2>Available Internships <span id="current-year"></span></h2>
+        <p id="result-count">Showing 8 opportunities</p>
+      </div>
+      <div id="filters">
+        <label>Filter by City</label>
+        <select id="city-filter" onchange="applyFilters()">
+          <option value="All">All Cities</option>
+          <option value="Bengaluru">Bengaluru</option>
+          <option value="Hyderabad">Hyderabad</option>
+          <option value="Chennai">Chennai</option>
+          <option value="Pune">Pune</option>
+          <option value="Mumbai">Mumbai</option>
+          <option value="Delhi NCR">Delhi NCR</option>
+        </select>
+        <label>Filter by Skill</label>
+        <div id="skill-chips">
+          <span class="skill-chip" onclick="toggleSkill(this,'Java')">Java</span>
+          <span class="skill-chip" onclick="toggleSkill(this,'Python')">Python</span>
+          <span class="skill-chip" onclick="toggleSkill(this,'React')">React</span>
+          <span class="skill-chip" onclick="toggleSkill(this,'ML')">ML</span>
+          <span class="skill-chip" onclick="toggleSkill(this,'AWS')">AWS</span>
+          <span class="skill-chip" onclick="toggleSkill(this,'Android')">Android</span>
+        </div>
+      </div>
+      <div id="card-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function getCurrentPeriod(date = new Date()) {
+  return `${date.getFullYear()} Q${Math.floor(date.getMonth() / 3) + 1}`;
+}
+
+function syncLiveDateLabels() {
+  const now = new Date();
+  const period = getCurrentPeriod(now);
+  document.title = `India IT Hiring Heatmap · ${period}`;
+  document.getElementById('current-period').textContent = period;
+  document.getElementById('current-year').textContent = now.getFullYear();
+}
+
+syncLiveDateLabels();
+setInterval(syncLiveDateLabels, 60_000);
+
+const INTERNSHIPS = [
+  { company:"Google",     role:"SWE Intern",        city:"Bengaluru", stipend:"₹80K/mo", duration:"3 months",  skills:["Python","ML"],          link:"https://careers.google.com/jobs/results/?jex=Entry-Level",              color:"#4285F4" },
+  { company:"Microsoft",  role:"SDE Intern",         city:"Hyderabad", stipend:"₹70K/mo", duration:"6 months",  skills:["Java","Azure"],          link:"https://careers.microsoft.com/students",                                 color:"#00A4EF" },
+  { company:"Amazon",     role:"SDE Intern",         city:"Bengaluru", stipend:"₹60K/mo", duration:"6 months",  skills:["DSA","AWS"],             link:"https://www.amazon.jobs/en/teams/internships-for-students",              color:"#FF9900" },
+  { company:"Zoho",       role:"Full Stack Intern",  city:"Chennai",   stipend:"₹20K/mo", duration:"6 months",  skills:["Java","React"],          link:"https://careers.zohocorp.com/jobs/Careers",                             color:"#E42527" },
+  { company:"Freshworks", role:"Backend Intern",     city:"Chennai",   stipend:"₹25K/mo", duration:"3 months",  skills:["Ruby","Node.js"],        link:"https://careers.freshworks.com",                                        color:"#25C16F" },
+  { company:"Infosys",    role:"Java Intern",        city:"Pune",      stipend:"₹15K/mo", duration:"3 months",  skills:["Java","Spring Boot"],    link:"https://www.infosys.com/careers/apply.html",                            color:"#007CC3" },
+  { company:"Wipro",      role:"Cloud Intern",       city:"Bengaluru", stipend:"₹18K/mo", duration:"6 months",  skills:["AWS","Python"],          link:"https://careers.wipro.com/careers-home",                                color:"#341C6E" },
+  { company:"PhonePe",    role:"Android Intern",     city:"Bengaluru", stipend:"₹50K/mo", duration:"6 months",  skills:["Kotlin","Android"],      link:"https://careers.phonepe.com",                                           color:"#5F259F" },
+];
+
+const CITIES_MAP = [
+  { name:"Bengaluru",  lat:12.9716, lng:77.5946, jobs:4200, role:"Data Science / AI" },
+  { name:"Mumbai",     lat:19.0760, lng:72.8777, jobs:3800, role:"AI Engineering / FinTech" },
+  { name:"Delhi NCR",  lat:28.6139, lng:77.2090, jobs:3400, role:"AI Engineering / Cloud" },
+  { name:"Hyderabad",  lat:17.3850, lng:78.4867, jobs:3100, role:"Data Science / DevOps" },
+  { name:"Pune",       lat:18.5204, lng:73.8567, jobs:2900, role:"DevOps / Backend" },
+  { name:"Chennai",    lat:13.0827, lng:80.2707, jobs:2400, role:"DevOps / Embedded" },
+];
+
+const MAX_JOBS = Math.max(...CITIES_MAP.map(c => c.jobs));
+let panelOpen = false;
+let activeSkills = [];
+let activeCity = "All";
+let leafletMarkers = {};
+
+// Map init
+const map = L.map('map', { center:[20.5937,78.9629], zoom:5 });
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom:19,
+}).addTo(map);
+
+// Heatmap
+const heatData = CITIES_MAP.map(c => [c.lat, c.lng, c.jobs / MAX_JOBS]);
+L.heatLayer(heatData, {
+  radius:55, blur:40, maxZoom:10, max:1.0,
+  gradient:{ 0.2:'#87CEEB', 0.5:'#3EB489', 0.8:'#6B8E23', 1.0:'#4A7C59' },
+}).addTo(map);
+
+// City markers
+CITIES_MAP.forEach(city => {
+  const pct = Math.round((city.jobs / MAX_JOBS) * 100);
+  const color = pct > 85 ? '#4A7C59' : '#3EB489';
+  const icon = L.divIcon({
+    className:'',
+    html:`<div style="width:13px;height:13px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,0.9);box-shadow:0 0 10px ${color}99,0 2px 6px rgba(45,90,78,0.3);cursor:pointer;"></div>`,
+    iconSize:[13,13], iconAnchor:[6,6],
+  });
+  const marker = L.marker([city.lat, city.lng], { icon });
+  marker.bindPopup(`
+    <div class="popup-city">${city.name}</div>
+    <div class="popup-label">Open Positions</div>
+    <div class="popup-jobs">${city.jobs.toLocaleString()}</div>
+    <div class="popup-label" style="margin-top:4px">Top Roles</div>
+    <div class="popup-role">${city.role}</div>
+    <div class="popup-bar-wrap"><div class="popup-bar" style="width:${pct}%"></div></div>
+    <div class="popup-pct">${pct}% of peak demand</div>
+    <button class="popup-filter-btn" onclick="filterByCity('${city.name}')">📋 View Internships →</button>
+  `, { maxWidth:210 });
+  marker.addTo(map);
+  leafletMarkers[city.name] = marker;
+});
+
+// Legend
+const legend = L.control({ position:'bottomleft' });
+legend.onAdd = () => {
+  const div = document.createElement('div');
+  div.id = 'legend';
+  div.innerHTML = `
+    <h3>Hiring Intensity</h3>
+    <div class="legend-bar"></div>
+    <div class="legend-labels"><span>Low</span><span>Medium</span><span>High</span></div>
+    <hr class="legend-divider"/>
+    ${[...CITIES_MAP].sort((a,b)=>b.jobs-a.jobs).map(c=>`
+      <div class="legend-city">
+        <span class="legend-city-name">${c.name}</span>
+        <span class="legend-city-val">${c.jobs.toLocaleString()}</span>
+      </div>`).join('')}
+  `;
+  return div;
+};
+legend.addTo(map);
+
+// Stats
+const stats = L.control({ position:'topright' });
+stats.onAdd = () => {
+  const total = CITIES_MAP.reduce((s,c)=>s+c.jobs,0);
+  const div = document.createElement('div');
+  div.id = 'stats';
+  div.innerHTML = `
+    <h3>Market Overview</h3>
+    <div class="stat-row"><span class="stat-label">Total Openings</span><span class="stat-val" style="color:#2d5a4e">${total.toLocaleString()}+</span></div>
+    <div class="stat-row"><span class="stat-label">Top City</span><span class="stat-val" style="color:#4A7C59">Bengaluru</span></div>
+    <div class="stat-row"><span class="stat-label">Remote Friendly</span><span class="stat-val" style="color:#3EB489">62%</span></div>
+    <div class="stat-row"><span class="stat-label">Avg Stipend</span><span class="stat-val" style="color:#6B8E23">₹34K/mo</span></div>
+    <div class="stat-row"><span class="stat-label">Cities Tracked</span><span class="stat-val" style="color:#5BB8A0">${CITIES_MAP.length}</span></div>
+  `;
+  return div;
+};
+stats.addTo(map);
+
+// Panel toggle
+function togglePanel() {
+  panelOpen = !panelOpen;
+  document.getElementById('side-panel').classList.toggle('closed', !panelOpen);
+  document.getElementById('panel-toggle').textContent = panelOpen ? '✕ Close Panel' : '📋 Internships (8)';
+  if (panelOpen) renderCards();
+}
+
+// Filter by city (called from popup button)
+function filterByCity(city) {
+  activeCity = city;
+  document.getElementById('city-filter').value = city;
+  map.closePopup();
+  if (!panelOpen) togglePanel();
+  else renderCards();
+}
+
+// City dropdown change
+function applyFilters() {
+  activeCity = document.getElementById('city-filter').value;
+  renderCards();
+}
+
+// Skill chip toggle
+function toggleSkill(el, skill) {
+  const idx = activeSkills.indexOf(skill);
+  if (idx > -1) { activeSkills.splice(idx,1); el.classList.remove('active'); }
+  else { activeSkills.push(skill); el.classList.add('active'); }
+  renderCards();
+}
+
+// Render cards
+function renderCards() {
+  const list = document.getElementById('card-list');
+  const countEl = document.getElementById('result-count');
+
+  let filtered = INTERNSHIPS.filter(i => {
+    const cityMatch = activeCity === 'All' || i.city === activeCity;
+    const skillMatch = activeSkills.length === 0 || activeSkills.some(s => i.skills.includes(s));
+    return cityMatch && skillMatch;
+  });
+
+  countEl.textContent = `Showing ${filtered.length} opportunit${filtered.length===1?'y':'ies'}`;
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="no-results">😕 No internships match your filters.<br/><br/><span style="font-size:10px">Try clearing skill filters or selecting All Cities.</span></div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(i => `
+    <div class="intern-card">
+      <div class="card-top">
+        <div class="company-avatar" style="background:${i.color}">${i.company[0]}</div>
+        <div class="card-info">
+          <div class="card-company">${i.company}</div>
+          <div class="card-role">${i.role}</div>
+        </div>
+      </div>
+      <div class="card-meta">
+        <span class="meta-city">📍 ${i.city}</span>
+        <span class="meta-stipend">${i.stipend}</span>
+        <span class="meta-duration">⏱ ${i.duration}</span>
+      </div>
+      <div class="card-skills">
+        ${i.skills.map(s=>`<span class="skill-tag">${s}</span>`).join('')}
+      </div>
+      <button class="apply-btn" onclick="window.open('${i.link}','_blank')">Apply Now →</button>
+    </div>
+  `).join('');
+}
+</script>
+</body>
+</html>

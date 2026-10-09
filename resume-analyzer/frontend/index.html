@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resume Diagnostic</title>
+<style>
+  :root {
+    --paper: #FAF8F3;
+    --paper-dim: #F0EDE4;
+    --ink: #1E1D1B;
+    --ink-dim: #6B685F;
+    --rule: #D8D3C4;
+    --pass: #2E6F5E;
+    --pass-bg: #E4EEE9;
+    --warn: #B8863A;
+    --warn-bg: #F5ECDB;
+    --flag: #A63D3D;
+    --flag-bg: #F5E2E0;
+    --mono: "SF Mono", "Menlo", "Consolas", monospace;
+    --serif: Georgia, "Times New Roman", serif;
+    --sans: -apple-system, "Segoe UI", system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.5;
+  }
+
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 16px;
+    margin-bottom: 32px;
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+
+  .file-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .upload-zone {
+    border: 1.5px dashed var(--rule);
+    border-radius: 2px;
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    background: var(--paper-dim);
+  }
+
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--ink);
+    background: #EAE6D9;
+  }
+
+  .upload-zone input { display: none; }
+
+  .upload-zone .primary {
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+
+  .upload-zone .secondary {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-dim);
+  }
+
+  .jd-field {
+    margin-top: 16px;
+  }
+
+  .jd-field textarea {
+    width: 100%;
+    min-height: 72px;
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 10px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    background: white;
+    resize: vertical;
+    color: var(--ink);
+  }
+
+  .jd-field label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-dim);
+    margin-bottom: 6px;
+  }
+
+  button.analyze {
+    margin-top: 16px;
+    width: 100%;
+    padding: 12px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 2px;
+    font-family: var(--sans);
+    font-size: 14px;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+
+  button.analyze:disabled { opacity: 0.4; cursor: default; }
+  button.analyze:not(:disabled):hover { opacity: 0.85; }
+
+  #status {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-dim);
+    margin-top: 12px;
+    min-height: 16px;
+  }
+
+  #status.error { color: var(--flag); }
+
+  .report { display: none; margin-top: 48px; }
+  .report.visible { display: block; }
+
+  .score-hero {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .score-hero .number {
+    font-family: var(--serif);
+    font-size: 64px;
+    line-height: 1;
+  }
+
+  .score-hero .of-100 {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--ink-dim);
+  }
+
+  .score-hero .filename {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-dim);
+    text-align: right;
+  }
+
+  section.category-bars { margin-bottom: 40px; }
+
+  .cat-row {
+    display: grid;
+    grid-template-columns: 160px 1fr 48px;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .cat-row .label {
+    font-size: 13px;
+  }
+
+  .cat-row .weight {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-dim);
+    display: block;
+  }
+
+  .bar-track {
+    height: 6px;
+    background: var(--paper-dim);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: var(--ink);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  .bar-fill.good { background: var(--pass); }
+  .bar-fill.mid { background: var(--warn); }
+  .bar-fill.bad { background: var(--flag); }
+
+  .cat-row .value {
+    font-family: var(--mono);
+    font-size: 13px;
+    text-align: right;
+  }
+
+  section.findings h2 {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-dim);
+    margin: 0 0 12px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+  }
+
+  .finding {
+    display: flex;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 2px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    background: var(--warn-bg);
+    color: #5a4526;
+  }
+
+  .finding .tick {
+    font-family: var(--mono);
+    flex-shrink: 0;
+  }
+
+  .empty-state {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--pass);
+    padding: 10px 12px;
+    background: var(--pass-bg);
+    border-radius: 2px;
+  }
+
+  details.raw {
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+  }
+
+  details.raw summary {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-dim);
+    cursor: pointer;
+  }
+
+  pre.raw-json {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--paper-dim);
+    padding: 16px;
+    border-radius: 2px;
+    overflow-x: auto;
+    max-height: 400px;
+    margin-top: 12px;
+  }
+
+  .api-config {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+    margin-top: 8px;
+  }
+
+  .api-config input {
+    font-family: var(--mono);
+    font-size: 11px;
+    border: none;
+    border-bottom: 1px dotted var(--rule);
+    background: transparent;
+    color: var(--ink-dim);
+    width: 220px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Resume Diagnostic</h1>
+      <span class="file-label">v1.1.0</span>
+    </header>
+
+    <div class="upload-zone" id="dropZone">
+      <div class="primary">Drop a resume here, or click to choose a file</div>
+      <div class="secondary">PDF or DOCX &middot; up to 5MB</div>
+      <input type="file" id="fileInput" accept=".pdf,.docx">
+    </div>
+
+    <div class="jd-field">
+      <label for="jdInput">Job description (optional — enables tailoring)</label>
+      <textarea id="jdInput" placeholder="Paste the job description here to get skill-match and title-alignment scoring..."></textarea>
+    </div>
+
+    <button class="analyze" id="analyzeBtn" disabled>Select a file to analyze</button>
+    <div id="status"></div>
+    <div class="api-config">
+      API: <input id="apiBase" value="http://127.0.0.1:8000" spellcheck="false">
+    </div>
+
+    <div class="report" id="report">
+      <div class="score-hero">
+        <span class="number" id="scoreNumber">–</span>
+        <span class="of-100">/ 100</span>
+        <span class="filename" id="scoreFilename"></span>
+      </div>
+
+      <section class="category-bars" id="categoryBars"></section>
+
+      <section class="findings">
+        <h2>Findings</h2>
+        <div id="findingsList"></div>
+      </section>
+
+      <details class="raw">
+        <summary>Raw JSON report</summary>
+        <pre class="raw-json" id="rawJson"></pre>
+      </details>
+    </div>
+  </div>
+
+<script>
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const jdInput = document.getElementById('jdInput');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const statusEl = document.getElementById('status');
+  const reportEl = document.getElementById('report');
+  const apiBaseInput = document.getElementById('apiBase');
+
+  let selectedFile = null;
+
+  const CATEGORY_LABELS = {
+    ats_essentials: 'ATS Essentials',
+    resume_sections: 'Sections',
+    content_quality: 'Content Quality',
+    job_tailoring: 'Job Tailoring',
+    recruiter_red_flags: 'Red Flags',
+    bias_and_discrimination: 'Bias Check',
+    seniority_and_impact: 'Seniority',
+  };
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) setFile(fileInput.files[0]);
+  });
+
+  function setFile(file) {
+    selectedFile = file;
+    dropZone.querySelector('.primary').textContent = file.name;
+    analyzeBtn.disabled = false;
+    analyzeBtn.textContent = 'Analyze resume';
+  }
+
+  function scoreClass(score) {
+    if (score >= 75) return 'good';
+    if (score >= 50) return 'mid';
+    return 'bad';
+  }
+
+  analyzeBtn.addEventListener('click', async () => {
+    if (!selectedFile) return;
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = 'Analyzing…';
+    statusEl.textContent = '';
+    statusEl.classList.remove('error');
+    reportEl.classList.remove('visible');
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    if (jdInput.value.trim()) formData.append('job_description', jdInput.value.trim());
+
+    try {
+      const res = await fetch(`${apiBaseInput.value.replace(/\/$/, '')}/analyze`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      renderReport(data);
+      statusEl.textContent = `Done — request served in real time from ${apiBaseInput.value}`;
+    } catch (e) {
+      statusEl.textContent = `Error: ${e.message}. Is the API running at ${apiBaseInput.value}?`;
+      statusEl.classList.add('error');
+    } finally {
+      analyzeBtn.disabled = false;
+      analyzeBtn.textContent = 'Analyze resume';
+    }
+  });
+
+  function renderReport(data) {
+    document.getElementById('scoreNumber').textContent = data.overall_score.toFixed(1);
+    document.getElementById('scoreFilename').textContent = selectedFile.name +
+      (data.report_id ? ` · saved as ${data.report_id.slice(0, 8)}` : '');
+
+    const barsEl = document.getElementById('categoryBars');
+    barsEl.innerHTML = '';
+    data.composite_score.categories.forEach(cat => {
+      const row = document.createElement('div');
+      row.className = 'cat-row';
+      row.innerHTML = `
+        <div>
+          <span class="label">${CATEGORY_LABELS[cat.category] || cat.category}</span>
+          <span class="weight">weight ${(cat.weight * 100).toFixed(0)}%</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill ${scoreClass(cat.score_0_to_100)}" style="width: ${cat.score_0_to_100}%"></div>
+        </div>
+        <div class="value">${cat.score_0_to_100.toFixed(0)}</div>
+      `;
+      barsEl.appendChild(row);
+    });
+
+    const findingsEl = document.getElementById('findingsList');
+    findingsEl.innerHTML = '';
+    if (data.warnings && data.warnings.length) {
+      data.warnings.forEach(w => {
+        const div = document.createElement('div');
+        div.className = 'finding';
+        div.innerHTML = `<span class="tick">→</span><span>${escapeHtml(w)}</span>`;
+        findingsEl.appendChild(div);
+      });
+    } else {
+      const div = document.createElement('div');
+      div.className = 'empty-state';
+      div.textContent = 'No issues flagged.';
+      findingsEl.appendChild(div);
+    }
+
+    document.getElementById('rawJson').textContent = JSON.stringify(data, null, 2);
+    reportEl.classList.add('visible');
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+</script>
+</body>
+</html>

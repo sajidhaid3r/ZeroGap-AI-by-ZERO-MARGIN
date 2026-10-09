@@ -1,0 +1,12 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.6
+pymupdf>=1.24.11
+python-docx>=1.1.2
+pydantic>=2.9.2
+pyyaml>=6.0.3
+python-multipart>=0.0.12
+pytesseract>=0.3.13
+pdf2image>=1.17.0
+rapidfuzz>=3.14.1
+anthropic>=0.39.0
+pyspellchecker>=0.8.2

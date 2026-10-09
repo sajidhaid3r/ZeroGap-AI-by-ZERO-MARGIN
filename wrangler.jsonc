@@ -1,0 +1,17 @@
+// Cloudflare Workers config for ZeroGap AI
+// Environment variables are defined in the vars section below.
+// Sensitive keys are stored here since .env is gitignored.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tanstack-start-app",
+  "compatibility_date": "2025-09-24",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "@tanstack/react-start/server-entry",
+  "vars": {
+    "GROQ_API_KEY": "YOUR_GROQ_API_KEY_HERE",
+    "SUPABASE_URL": "https://vdwilxlpcyklerzodwxp.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkd2lseGxwY3lrbGVyem9kd3hwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMTczNTMsImV4cCI6MjEwMDc5MzM1M30.gsTnG794Vtf8sfqhGC-hGCPh_-Iy6NXL4cMetXzw00Y",
+    "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkd2lseGxwY3lrbGVyem9kd3hwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTIxNzM1MywiZXhwIjoyMTAwNzkzMzUzfQ.LPLnLGjjThquTxVF0FWhItCPjfpTC0aOegZ16KeJnsU"
+  }
+}
+

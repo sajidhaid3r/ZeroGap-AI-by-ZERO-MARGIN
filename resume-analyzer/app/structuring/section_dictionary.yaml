@@ -1,0 +1,79 @@
+# Section header synonym dictionary
+# version: 1.0.0
+#
+# Maps canonical section names to the header text variants resumes
+# commonly use. This file is intentionally kept as data, not code, so it
+# can be audited, extended, and versioned independently of the parser
+# logic - unlike a hardcoded string-matching block buried in Python.
+#
+# Matching is case-insensitive and ignores surrounding punctuation.
+# Add new variants here as you encounter real-world resumes that miss.
+
+version: "1.0.0"
+
+sections:
+  summary:
+    - summary
+    - professional summary
+    - profile
+    - about me
+    - career summary
+    - objective
+    - career objective
+    - professional profile
+
+  experience:
+    - experience
+    - work experience
+    - professional experience
+    - employment history
+    - work history
+    - relevant experience
+    - career history
+
+  education:
+    - education
+    - academic background
+    - education and training
+    - academic qualifications
+
+  skills:
+    - skills
+    - technical skills
+    - core competencies
+    - key skills
+    - skills & tools
+    - areas of expertise
+    - competencies
+
+  certifications:
+    - certifications
+    - certificates
+    - licenses
+    - licenses & certifications
+
+  projects:
+    - projects
+    - key projects
+    - personal projects
+    - selected projects
+
+  awards:
+    - awards
+    - honors
+    - awards and honors
+    - achievements
+
+  languages:
+    - languages
+    - language proficiency
+
+  contact:
+    - contact
+    - contact information
+    - personal information
+
+  interests:
+    - interests
+    - hobbies
+    - hobbies and interests
