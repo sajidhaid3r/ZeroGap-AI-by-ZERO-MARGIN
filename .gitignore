@@ -37,3 +37,11 @@ dist/
 .env
 *.env*
 node_modules/
+# -- Secrets ---------------------
+# Do NOT commit the file that holds the real Groq key
+wrangler.jsonc
+# Do NOT commit the example env that held the Anthropic key
+resume-analyzer/.env.example
+# Generic ignore for any env files / secrets
+*.env
+*.env.example
